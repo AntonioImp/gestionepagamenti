@@ -1,3 +1,12 @@
+version: '3'
+
+x-common-variables: &common-variables
+  DATASOURCE_HOST: ${DB_HOST}
+  DATASOURCE_USER: ${DB_USER}
+  DATASOURCE_PASSWORD: ${DB_PASSWORD}
+  DATASOURCE_NAME: ${DB_DATABASE}
+  DATASOURCE_PORT: ${DB_PORT}
+
 x-xxx-common-services-config: &common-services-config
   restart: always
 
@@ -6,7 +15,7 @@ x-kafka-env: &kafka-env
   KAFKA_ADVERTISED_PORT: 9092
   BROKER_ID_COMMAND: "hostname | cut -d'-' -f2"
   KAFKA_ZOOKEEPER_CONNECT: "zoo:2181"
-  KAFKA_CREATE_TOPICS: "logging:20:1,pushnotifications:10:1,invoicing:10:1,mailing:10:1,userupdates:10:1,orderupdates:10:1"
+  KAFKA_CREATE_TOPICS: "logging:20:1,orders:20:1"
   KAFKA_LISTENERS: "PLAINTEXT://:9092"
 
 services:
@@ -15,7 +24,19 @@ services:
     image: library/zookeeper:3.4.13
     environment:
       ZOO_MY_ID: 1
-kafka:
-  <<: *common-services-config
-  environment: *kafka-env
-  image: wurstmeister/kafka:2.11-2.0.0
+
+  mysqldb:
+    image: mysql:5
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      - MYSQL_DATABASE=${DB_DATABASE}
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+    volumes:
+      - mystorage:/var/lib/mysql
+
+  kafka:
+    <<: *common-services-config
+    environment: *kafka-env
+    image: wurstmeister/kafka:2.11-2.0.0
