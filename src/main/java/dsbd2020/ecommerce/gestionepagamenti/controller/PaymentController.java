@@ -48,6 +48,7 @@ public class PaymentController {
     @PostMapping(path = "/ipn")
     public @ResponseBody
     Object ipn(@RequestBody Map<String, Object> data) {
+        System.out.println(data);
         Map<String, Object> kafka_msg = new HashMap<>();
         Map<String, Object> value_msg = new HashMap<>();
         if (true) {
@@ -92,7 +93,10 @@ public class PaymentController {
     }
 
     @GetMapping(path = "/transactions")
-    public @ResponseBody Iterable<Orders> getOrders(@RequestParam Long fromTimestamp, @RequestParam Long endTimestamp) {
-        return orderService.getOrdersBetweenTimestamp(fromTimestamp, endTimestamp);
+    public @ResponseBody Iterable<Orders> getOrders(@RequestHeader(value = "X-User-ID") Integer ID ,@RequestParam Long fromTimestamp, @RequestParam Long endTimestamp) {
+        if (ID == 0) {
+            return orderService.getOrdersBetweenTimestamp(fromTimestamp, endTimestamp);
+        }
+        return null;
     }
 }
