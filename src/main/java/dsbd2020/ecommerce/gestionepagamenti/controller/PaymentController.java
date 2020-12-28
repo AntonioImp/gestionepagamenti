@@ -150,4 +150,12 @@ public class PaymentController {
         }
         return null;
     }
+
+    @GetMapping(path = "/ping")
+    public @ResponseBody Map<String, String> pingAck() {
+        Map<String, String> ack = new HashMap<>();
+        ack.put("serviceStatus", "up");
+        ack.put("dbStatus", "up");
+        return ack;
+    }
 }
