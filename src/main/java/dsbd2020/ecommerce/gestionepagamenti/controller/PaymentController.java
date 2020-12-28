@@ -12,6 +12,14 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
@@ -51,7 +59,50 @@ public class PaymentController {
         System.out.println(data);
         Map<String, Object> kafka_msg = new HashMap<>();
         Map<String, Object> value_msg = new HashMap<>();
-        if (true) {
+
+        HttpURLConnection connection;
+        BufferedReader reader;
+        String line;
+        String notify= "";
+        StringBuffer responseContent = new StringBuffer();
+        try{
+            String urlParameters  = "invoice="+data.get("invoice")+"&item_id="+data.get("item_id")+"&mc_gross="+data.get("mc_gross")+"&business="+data.get("business")+"&cmd=_notify-validate";
+            byte[] postData = urlParameters.getBytes( StandardCharsets.UTF_8 );
+            int postDataLength = postData.length;
+            URL r = new URL("https://ipnpb.sandbox.paypal.com/cgi-bin/webscr");
+            connection = (HttpURLConnection) r.openConnection();
+            connection.setRequestMethod("POST");
+            connection.setDoOutput(true);
+            connection.setInstanceFollowRedirects(false);
+            connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+            connection.setRequestProperty("charset", "utf-8");
+            connection.setRequestProperty("Content-Length", Integer.toString(postDataLength));
+            connection.setConnectTimeout(5000);
+            DataOutputStream wr = new DataOutputStream(connection.getOutputStream());
+            wr.write( postData );
+            int status = connection.getResponseCode();
+            System.out.println(connection.getInputStream().toString());
+            if(status >299){
+                reader = new BufferedReader(new InputStreamReader(connection.getErrorStream()));
+                while((line = reader.readLine()) != null){
+                    responseContent.append(line);
+                }
+            }else{
+                reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                //while((line = reader.readLine()) != null){
+                notify =reader.readLine();  // responseContent.append(reader.readLine());
+                System.out.println(notify);
+                //}
+            }
+            reader.close();
+            System.out.println(responseContent.toString());
+        }catch (MalformedURLException e){
+            e.printStackTrace();
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+
+        if (!notify.equals("INVALID")) {
             if (data.get("business").equals(MY_PAYPAL_ACCOUNT)) {
                 LOG.info("---------------------------------");
                 kafka_msg.put("key", "order_paid");
