@@ -10,10 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -92,5 +89,10 @@ public class PaymentController {
         logging.setUnixTimestamp((Long)value_msg.get("timestamp"));
         logging.setIpnAttribute(data);
         return loggingService.addLogging(logging);
+    }
+
+    @GetMapping(path = "/transactions")
+    public @ResponseBody Iterable<Orders> getOrders(@RequestParam Long fromTimestamp, @RequestParam Long endTimestamp) {
+        return orderService.getOrdersBetweenTimestamp(fromTimestamp, endTimestamp);
     }
 }
