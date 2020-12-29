@@ -6,9 +6,19 @@ x-common-variables: &common-variables
   DATASOURCE_PASSWORD: ${DB_PASSWORD}
   DATASOURCE_NAME: ${DB_DATABASE}
   DATASOURCE_PORT: ${DB_PORT}
+  PAYPAL_ACCOUNT: ${MY_PAYPAL_ACCOUNT}
+  KAFKA_HOST: ${KAFKA_HOST}
+  KAFKA_PORT: ${KAFKA_PORT}
+  KAFKA_TOPIC1: ${KAFKA_TOPIC1}
+  KAFKA_TOPIC2: ${KAFKA_TOPIC2}
 
 x-xxx-common-services-config: &common-services-config
   restart: always
+
+x-common-php-variables: &common-php-variables
+  PMA_HOST: ${DB_HOST}
+  MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+  MYSQL_USER: ${DB_USER}
 
 x-kafka-env: &kafka-env
   KAFKA_BROKER_ID: 1
@@ -36,7 +46,28 @@ services:
     volumes:
       - mystorage:/var/lib/mysql
 
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    ports:
+      - '8082:80'
+    environment:
+      <<: *common-php-variables
+
   kafka:
     <<: *common-services-config
     environment: *kafka-env
     image: wurstmeister/kafka:2.11-2.0.0
+
+  gestionepagamenti:
+    image: gestionepagamenti
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "2222:2222"
+    restart: always
+    environment:
+      <<: *common-variables
+
+volumes:
+  mystorage:
