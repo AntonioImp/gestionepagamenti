@@ -8,18 +8,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.RestTemplate;
 
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLEncoder;
+import java.io.*;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.HashMap;
@@ -55,56 +53,66 @@ public class PaymentController {
     }
 
     private String IPN_verify(Map<String, Object> data) {
-        HttpURLConnection connection;
-        BufferedReader reader;
-        String line;
-        String notify= "";
-        StringBuffer responseContent = new StringBuffer();
-        try{
+        String response = "";
+//        String url = "https://httpstat.us/500";
+        String ipAddress = "";
+        String url = "https://ipnpb.sandbox.paypal.com/cgi-bin/webscr";
+        try {
+            ipAddress = Inet4Address.getLocalHost().getHostAddress();
             StringBuilder urlParam = new StringBuilder();
-            for (Map.Entry<String,Object> param : data.entrySet()) {
+            for (Map.Entry<String, Object> param : data.entrySet()) {
                 if (urlParam.length() != 0) urlParam.append('&');
                 urlParam.append(URLEncoder.encode(param.getKey(), "UTF-8"));
                 urlParam.append('=');
                 urlParam.append(URLEncoder.encode(String.valueOf(param.getValue()), "UTF-8"));
             }
             urlParam.append("&cmd=_notify-validate");
-            System.out.println(urlParam);
-            byte[] postData = urlParam.toString().getBytes( StandardCharsets.UTF_8 );
-            int postDataLength = postData.length;
-            URL r = new URL("https://ipnpb.sandbox.paypal.com/cgi-bin/webscr");
-            connection = (HttpURLConnection) r.openConnection();
-            connection.setRequestMethod("POST");
-            connection.setDoOutput(true);
-            connection.setInstanceFollowRedirects(false);
-            connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-            connection.setRequestProperty("charset", "utf-8");
-            connection.setRequestProperty("Content-Length", Integer.toString(postDataLength));
-            connection.setConnectTimeout(5000);
-            DataOutputStream wr = new DataOutputStream(connection.getOutputStream());
-            wr.write( postData );
-            int status = connection.getResponseCode();
-            System.out.println(connection.getInputStream().toString());
-            if(status >299){
-                reader = new BufferedReader(new InputStreamReader(connection.getErrorStream()));
-                while((line = reader.readLine()) != null){
-                    responseContent.append(line);
-                }
-            }else{
-                reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                //while((line = reader.readLine()) != null){
-                notify =reader.readLine();  // responseContent.append(reader.readLine());
-                System.out.println(notify);
-                //}
-            }
-            reader.close();
-            System.out.println(responseContent.toString());
-        }catch (MalformedURLException e){
-            e.printStackTrace();
-        }catch (IOException e){
+            byte[] postData = urlParam.toString().getBytes(StandardCharsets.UTF_8);
+
+            RestTemplate restTemplate = new RestTemplate();
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("Content-Type", "application/x-www-form-urlencoded");
+            HttpEntity<byte[]> r = new HttpEntity<>(postData, headers);
+            ResponseEntity<String> responseMessage = restTemplate.exchange(url, HttpMethod.POST, r, String.class);
+
+            response = responseMessage.getBody();
+
+        } catch (HttpServerErrorException e) {
+            Map<String, Object> kafka_msg = new HashMap<>();
+            Map<String, Object> value_msg = new HashMap<>();
+
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            e.printStackTrace(pw);
+
+            LOG.info("---------------------------------");
+            kafka_msg.put("key", "http_errors");
+            value_msg.put("timestamp", Instant.now().getEpochSecond());
+            value_msg.put("sourceIp", ipAddress);
+            value_msg.put("service", "payment management");
+            value_msg.put("request", url + "|POST");
+            value_msg.put("error", sw);
+            kafka_msg.put("value", value_msg);
+            sendCustomMessage(kafka_msg, "logging");
+        } catch (HttpClientErrorException e) {
+            Map<String, Object> kafka_msg = new HashMap<>();
+            Map<String, Object> value_msg = new HashMap<>();
+            StackTraceElement[] stackTrace = e.getStackTrace();
+            System.out.println(e.getRawStatusCode());
+
+            LOG.info("---------------------------------");
+            kafka_msg.put("key", "http_errors");
+            value_msg.put("timestamp", Instant.now().getEpochSecond());
+            value_msg.put("sourceIp", ipAddress);
+            value_msg.put("service", "payment management");
+            value_msg.put("request", url + "|POST");
+            value_msg.put("error", e.getRawStatusCode());
+            kafka_msg.put("value", value_msg);
+            sendCustomMessage(kafka_msg, "logging");
+        } catch (IOException e) {
             e.printStackTrace();
         }
-        return notify;
+        return response;
     }
 
     @PostMapping(path = "/ipn")
@@ -116,45 +124,48 @@ public class PaymentController {
 
         String notify = IPN_verify(data);
 
-        if (!notify.equals("INVALID")) {
-            if (data.get("business").equals(MY_PAYPAL_ACCOUNT)) {
-                LOG.info("---------------------------------");
-                kafka_msg.put("key", "order_paid");
-                value_msg.put("orderId", data.get("invoice"));
-                value_msg.put("userId", data.get("item_id"));
-                value_msg.put("amountPaid", data.get("mc_gross"));
-                kafka_msg.put("value", value_msg);
-                sendCustomMessage(kafka_msg, "orders");
+        if(!notify.equals("")) {
+            if (!notify.equals("INVALID")) {
+                if (data.get("business").equals(MY_PAYPAL_ACCOUNT)) {
+                    LOG.info("---------------------------------");
+                    kafka_msg.put("key", "order_paid");
+                    value_msg.put("orderId", data.get("invoice"));
+                    value_msg.put("userId", data.get("item_id"));
+                    value_msg.put("amountPaid", data.get("mc_gross"));
+                    kafka_msg.put("value", value_msg);
+                    sendCustomMessage(kafka_msg, "orders");
 
-                Orders order = new Orders();
-                order.setKafkaOrderId((Integer)data.get("invoice"));
-                order.setKafkaUserId((Integer)data.get("item_id"));
-                order.setKafkaAmountPaid((Double)data.get("mc_gross"));
-                order.setUnixTimestamp(Instant.now().getEpochSecond());
-                order.setIpnAttribute(data);
-                return orderService.addOrders(order);
+                    Orders order = new Orders();
+                    order.setKafkaOrderId((Integer) data.get("invoice"));
+                    order.setKafkaUserId((Integer) data.get("item_id"));
+                    order.setKafkaAmountPaid(Double.valueOf(data.get("mc_gross").toString()));
+                    order.setUnixTimestamp(Instant.now().getEpochSecond());
+                    order.setIpnAttribute(data);
+                    return orderService.addOrders(order);
+                } else {
+                    LOG.info("---------------------------------");
+                    kafka_msg.put("key", "received_wrong_business_paypal_payment");
+                    value_msg.put("timestamp", Instant.now().getEpochSecond());
+                    value_msg.putAll(data);
+                    kafka_msg.put("value", value_msg);
+                    sendCustomMessage(kafka_msg, "logging");
+                }
             } else {
                 LOG.info("---------------------------------");
-                kafka_msg.put("key", "received_wrong_business_paypal_payment");
+                kafka_msg.put("key", "bad_ipn_error");
                 value_msg.put("timestamp", Instant.now().getEpochSecond());
                 value_msg.putAll(data);
                 kafka_msg.put("value", value_msg);
                 sendCustomMessage(kafka_msg, "logging");
             }
-        } else {
-            LOG.info("---------------------------------");
-            kafka_msg.put("key", "bad_ipn_error");
-            value_msg.put("timestamp", Instant.now().getEpochSecond());
-            value_msg.putAll(data);
-            kafka_msg.put("value", value_msg);
-            sendCustomMessage(kafka_msg, "logging");
-        }
 
-        Logging logging = new Logging();
-        logging.setKafkaKey((String)kafka_msg.get("key"));
-        logging.setUnixTimestamp((Long)value_msg.get("timestamp"));
-        logging.setIpnAttribute(data);
-        return loggingService.addLogging(logging);
+            Logging logging = new Logging();
+            logging.setKafkaKey((String) kafka_msg.get("key"));
+            logging.setUnixTimestamp((Long) value_msg.get("timestamp"));
+            logging.setIpnAttribute(data);
+            return loggingService.addLogging(logging);
+        }
+        return null;
     }
 
     @GetMapping(path = "/transactions")
