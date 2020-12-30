@@ -19,6 +19,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.HashMap;
@@ -66,8 +67,16 @@ public class PaymentController {
         String notify= "";
         StringBuffer responseContent = new StringBuffer();
         try{
-            String urlParameters  = "invoice="+data.get("invoice")+"&item_id="+data.get("item_id")+"&mc_gross="+data.get("mc_gross")+"&business="+data.get("business")+"&cmd=_notify-validate";
-            byte[] postData = urlParameters.getBytes( StandardCharsets.UTF_8 );
+            StringBuilder urlParam = new StringBuilder();
+            for (Map.Entry<String,Object> param : data.entrySet()) {
+                if (urlParam.length() != 0) urlParam.append('&');
+                urlParam.append(URLEncoder.encode(param.getKey(), "UTF-8"));
+                urlParam.append('=');
+                urlParam.append(URLEncoder.encode(String.valueOf(param.getValue()), "UTF-8"));
+            }
+            urlParam.append("&cmd=_notify-validate");
+            System.out.println(urlParam);
+            byte[] postData = urlParam.toString().getBytes( StandardCharsets.UTF_8 );
             int postDataLength = postData.length;
             URL r = new URL("https://ipnpb.sandbox.paypal.com/cgi-bin/webscr");
             connection = (HttpURLConnection) r.openConnection();

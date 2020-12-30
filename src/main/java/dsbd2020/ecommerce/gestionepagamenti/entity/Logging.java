@@ -37,7 +37,7 @@ public class Logging {
     public void setIpnAttribute(Map<String, Object> data) {
         IpnInvoice = (Integer)data.get("invoice");
         IpnItem_id = (Integer)data.get("item_id");
-        IpnMc_gross = (Double)data.get("mc_gross");
+        IpnMc_gross = Double.valueOf(data.get("mc_gross").toString());
         IpnBusiness = (String)data.get("business");
     }
 
