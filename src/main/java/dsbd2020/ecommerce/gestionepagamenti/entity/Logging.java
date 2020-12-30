@@ -81,8 +81,8 @@ public class Logging {
         return IpnMc_gross;
     }
 
-    public void setIpnMc_gross(Double ipnMc_gross) {
-        IpnMc_gross = ipnMc_gross;
+    public void setIpnMc_gross(Object ipnMc_gross) {
+        IpnMc_gross = Double.valueOf(ipnMc_gross.toString());
     }
 
     public String getIpnBusiness() {

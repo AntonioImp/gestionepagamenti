@@ -41,7 +41,7 @@ public class Orders {
     public void setIpnAttribute(Map<String, Object> data) {
         IpnInvoice = (Integer)data.get("invoice");
         IpnItem_id = (Integer)data.get("item_id");
-        IpnMc_gross = (Double)data.get("mc_gross");
+        IpnMc_gross = Double.valueOf(data.get("mc_gross").toString());
         IpnBusiness = (String)data.get("business");
     }
 
@@ -89,8 +89,8 @@ public class Orders {
         return IpnMc_gross;
     }
 
-    public void setIpnMc_gross(Double ipnMc_gross) {
-        IpnMc_gross = ipnMc_gross;
+    public void setIpnMc_gross(Object ipnMc_gross) {
+        IpnMc_gross = Double.valueOf(ipnMc_gross.toString());
     }
 
     public String getIpnBusiness() {
