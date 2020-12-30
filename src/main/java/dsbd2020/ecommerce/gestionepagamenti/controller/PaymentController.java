@@ -54,13 +54,7 @@ public class PaymentController {
         dataKafkaTemplate.send(topicName, data);
     }
 
-    @PostMapping(path = "/ipn")
-    public @ResponseBody
-    Object ipn(@RequestBody Map<String, Object> data) {
-        System.out.println(data);
-        Map<String, Object> kafka_msg = new HashMap<>();
-        Map<String, Object> value_msg = new HashMap<>();
-
+    private String IPN_verify(Map<String, Object> data) {
         HttpURLConnection connection;
         BufferedReader reader;
         String line;
@@ -110,6 +104,17 @@ public class PaymentController {
         }catch (IOException e){
             e.printStackTrace();
         }
+        return notify;
+    }
+
+    @PostMapping(path = "/ipn")
+    public @ResponseBody
+    Object ipn(@RequestBody Map<String, Object> data) {
+        System.out.println(data);
+        Map<String, Object> kafka_msg = new HashMap<>();
+        Map<String, Object> value_msg = new HashMap<>();
+
+        String notify = IPN_verify(data);
 
         if (!notify.equals("INVALID")) {
             if (data.get("business").equals(MY_PAYPAL_ACCOUNT)) {
