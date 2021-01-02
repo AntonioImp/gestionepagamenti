@@ -89,7 +89,7 @@ public class PaymentController {
             kafka_msg.put("key", "http_errors");
             value_msg.put("timestamp", Instant.now().getEpochSecond());
             value_msg.put("sourceIp", ipAddress);
-            value_msg.put("service", "payment management");
+            value_msg.put("service", "payment manager");
             value_msg.put("request", url + "|POST");
             value_msg.put("error", sw);
             kafka_msg.put("value", value_msg);
@@ -104,7 +104,7 @@ public class PaymentController {
             kafka_msg.put("key", "http_errors");
             value_msg.put("timestamp", Instant.now().getEpochSecond());
             value_msg.put("sourceIp", ipAddress);
-            value_msg.put("service", "payment management");
+            value_msg.put("service", "payment manager");
             value_msg.put("request", url + "|POST");
             value_msg.put("error", e.getRawStatusCode());
             kafka_msg.put("value", value_msg);

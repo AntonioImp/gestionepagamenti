@@ -9,8 +9,6 @@ x-common-variables: &common-variables
   PAYPAL_ACCOUNT: ${MY_PAYPAL_ACCOUNT}
   KAFKA_HOST: ${KAFKA_HOST}
   KAFKA_PORT: ${KAFKA_PORT}
-  KAFKA_TOPIC1: ${KAFKA_TOPIC1}
-  KAFKA_TOPIC2: ${KAFKA_TOPIC2}
 
 x-xxx-common-services-config: &common-services-config
   restart: always
