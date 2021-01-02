@@ -32,6 +32,7 @@ public class PaymentController {
 
     private final Logger LOG = LoggerFactory.getLogger(PaymentController.class);
 
+    @Autowired
     private KafkaTemplate<String, Map> dataKafkaTemplate;
 
     @Autowired
@@ -40,10 +41,10 @@ public class PaymentController {
     @Autowired
     private LoggingService loggingService;
 
-    @Autowired
-    PaymentController(KafkaTemplate<String, Map> dataKafkaTemplate) {
-        this.dataKafkaTemplate = dataKafkaTemplate;
-    }
+//    @Autowired
+//    PaymentController(KafkaTemplate<String, Map> dataKafkaTemplate) {
+//        this.dataKafkaTemplate = dataKafkaTemplate;
+//    }
 
     void sendCustomMessage(Map<String, Object> data, String topicName) {
         LOG.info("Sending Json Serializer : {}", data);
