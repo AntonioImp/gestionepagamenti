@@ -65,6 +65,9 @@ services:
       dockerfile: Dockerfile
     ports:
       - "2222:2222"
+    depends_on:
+      - kafka
+      - mysqldb
     restart: always
     environment:
       <<: *common-variables
