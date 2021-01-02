@@ -117,7 +117,7 @@ public class PaymentController {
 
     @PostMapping(path = "/ipn")
     public @ResponseBody
-    Object ipn(@RequestBody Map<String, Object> data) {
+    void ipn(@RequestBody Map<String, Object> data) {
         System.out.println(data);
         Map<String, Object> kafka_msg = new HashMap<>();
         Map<String, Object> value_msg = new HashMap<>();
@@ -141,7 +141,11 @@ public class PaymentController {
                     order.setKafkaAmountPaid(Double.valueOf(data.get("mc_gross").toString()));
                     order.setUnixTimestamp(Instant.now().getEpochSecond());
                     order.setIpnAttribute(data);
-                    return orderService.addOrders(order);
+
+                    LOG.info("Orders data stored : {}", orderService.addOrders(order));
+                    LOG.info("--------------------------------");
+                    return;
+
                 } else {
                     LOG.info("---------------------------------");
                     kafka_msg.put("key", "received_wrong_business_paypal_payment");
@@ -163,9 +167,10 @@ public class PaymentController {
             logging.setKafkaKey((String) kafka_msg.get("key"));
             logging.setUnixTimestamp((Long) value_msg.get("timestamp"));
             logging.setIpnAttribute(data);
-            return loggingService.addLogging(logging);
+
+            LOG.info("Logging data stored : {}", loggingService.addLogging(logging));
+            LOG.info("--------------------------------");
         }
-        return null;
     }
 
     @GetMapping(path = "/transactions")
