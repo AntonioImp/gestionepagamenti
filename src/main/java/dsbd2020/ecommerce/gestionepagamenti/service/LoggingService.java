@@ -16,4 +16,8 @@ public class LoggingService {
     public Logging addLogging(Logging logging) {
         return repository.save(logging);
     }
+
+    public Iterable<Logging> getLoggingBetweenTimestamp(Long startUnixTimestamp, Long endUnixTimestamp) {
+        return repository.findByUnixTimestampBetween(startUnixTimestamp, endUnixTimestamp).orElse(null);
+    }
 }
