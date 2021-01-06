@@ -15,6 +15,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
+import com.google.common.base.Splitter;
 
 import java.io.*;
 import java.net.*;
@@ -52,72 +53,55 @@ public class PaymentController {
         dataKafkaTemplate.send(topicName, data);
     }
 
-    private String IPN_verify(Map<String, Object> data) throws UnsupportedEncodingException{
+    private String IPN_verify(String ipn) {
 //        String url = "https://httpstat.us/500";
         String url = "https://ipnpb.sandbox.paypal.com/cgi-bin/webscr";
-        StringBuilder urlParam = new StringBuilder();
-        for (Map.Entry<String, Object> param : data.entrySet()) {
-            if (urlParam.length() != 0) urlParam.append('&');
-            urlParam.append(URLEncoder.encode(param.getKey(), "UTF-8"));
-            urlParam.append('=');
-            urlParam.append(URLEncoder.encode(String.valueOf(param.getValue()), "UTF-8"));
-        }
-        urlParam.append("&cmd=_notify-validate");
-        byte[] postData = urlParam.toString().getBytes(StandardCharsets.UTF_8);
+        ipn += "&cmd=_notify-validate";
+
+        byte[] postData = ipn.getBytes(StandardCharsets.UTF_8);
 
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", "application/x-www-form-urlencoded");
         HttpEntity<byte[]> r = new HttpEntity<>(postData, headers);
         ResponseEntity<String> responseMessage = restTemplate.exchange(url, HttpMethod.POST, r, String.class);
+
+        System.out.println(responseMessage.getBody());
+
         return responseMessage.getBody();
-    }
-
-    @PostMapping(path = "/real_ipn", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public @ResponseBody int real_ipn(IPN ipn) {
-        System.out.println(ipn.toString());
-        return 200;
-//        IPN persistedPerson = personService.save(pojo);
-//        ResponseEntity<IPN> tmp = ResponseEntity
-//                .created(URI
-//                        .create(String.format("/persons/%s", person.getFirstName())))
-//                .body(persistedPerson);
-//        PhoneNumber fromPhone = new PhoneNumber(request.getFrom());
-//        String commandText = request.getBody();
-
-//        UserProfile userProfile = userProfileRepository.findByPhoneNumber(fromPhone)
-//                .orElseThrow(() -> new NoSuchElementException(
-//                        "Could not find authorized User Profile for " + fromPhone + ", command text was: " + commandText));
-//
-//        return executeCommand(commandText, userProfile);
     }
 
     @PostMapping(path = "/ipn")
     public @ResponseBody
-    ResponseEntity ipn(@RequestBody Map<String, Object> data) throws UnsupportedEncodingException{
-        System.out.println(data);
+    ResponseEntity ipn(@RequestBody String request) throws UnsupportedEncodingException{
         Map<String, Object> kafka_msg = new HashMap<>();
         Map<String, Object> value_msg = new HashMap<>();
 
-        String notify = IPN_verify(data);
+        String notify = IPN_verify(request);
+
+        Map<String, String> newMap = new HashMap<>();
+        for(Map.Entry<String, String> entry : Splitter.on('&').trimResults().withKeyValueSeparator('=').split(request).entrySet()) {
+//            System.out.println("Key: " + entry.getKey() + "; Value: " + entry.getValue());
+            newMap.put(entry.getKey(), URLDecoder.decode(entry.getValue(), StandardCharsets.UTF_8.toString()));
+        }
 
         if(!notify.equals("")) {
             if (!notify.equals("INVALID")) {
-                if (data.get("business").equals(MY_PAYPAL_ACCOUNT)) {
+                if (newMap.get("business").equals(MY_PAYPAL_ACCOUNT)) {
                     LOG.info("---------------------------------");
                     kafka_msg.put("key", "order_paid");
-                    value_msg.put("orderId", data.get("invoice"));
-                    value_msg.put("userId", data.get("item_id"));
-                    value_msg.put("amountPaid", data.get("mc_gross"));
+                    value_msg.put("orderId", Integer.valueOf(newMap.get("invoice")));
+                    value_msg.put("userId", newMap.get("payer_id"));
+                    value_msg.put("amountPaid", Double.valueOf(newMap.get("mc_gross")));
                     kafka_msg.put("value", value_msg);
                     sendCustomMessage(kafka_msg, "orders");
 
                     Orders order = new Orders();
-                    order.setKafkaOrderId((Integer) data.get("invoice"));
-                    order.setKafkaUserId((Integer) data.get("item_id"));
-                    order.setKafkaAmountPaid(Double.valueOf(data.get("mc_gross").toString()));
+                    order.setKafkaOrderId(Integer.valueOf(newMap.get("invoice")));
+                    order.setKafkaUserId(newMap.get("payer_id"));
+                    order.setKafkaAmountPaid(Double.valueOf(newMap.get("mc_gross")));
                     order.setUnixTimestamp(Instant.now().getEpochSecond());
-                    order.setIpnAttribute(data);
+                    order.setIpnAttribute(newMap);
 
                     LOG.info("Orders data stored : {}", orderService.addOrders(order));
                     LOG.info("--------------------------------");
@@ -127,7 +111,7 @@ public class PaymentController {
                     LOG.info("---------------------------------");
                     kafka_msg.put("key", "received_wrong_business_paypal_payment");
                     value_msg.put("timestamp", Instant.now().getEpochSecond());
-                    value_msg.putAll(data);
+                    value_msg.putAll(newMap);
                     kafka_msg.put("value", value_msg);
                     sendCustomMessage(kafka_msg, "logging");
                 }
@@ -135,15 +119,15 @@ public class PaymentController {
                 LOG.info("---------------------------------");
                 kafka_msg.put("key", "bad_ipn_error");
                 value_msg.put("timestamp", Instant.now().getEpochSecond());
-                value_msg.putAll(data);
+                value_msg.putAll(newMap);
                 kafka_msg.put("value", value_msg);
                 sendCustomMessage(kafka_msg, "logging");
             }
 
             Logging logging = new Logging();
-            logging.setKafkaKey((String) kafka_msg.get("key"));
+            logging.setKafkaKey(String.valueOf(kafka_msg.get("key")));
             logging.setUnixTimestamp((Long) value_msg.get("timestamp"));
-            logging.setIpnAttribute(data);
+            logging.setIpnAttribute(newMap);
 
             LOG.info("Logging data stored : {}", loggingService.addLogging(logging));
             LOG.info("--------------------------------");
