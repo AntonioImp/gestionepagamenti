@@ -46,8 +46,8 @@ public class PaymentController {
         this.dataKafkaTemplate = dataKafkaTemplate;
     }
 
-    @Autowired
-    private DatabaseHealthContributor dbc;
+//    @Autowired
+//    private DatabaseHealthContributor dbc;
 
     void sendCustomMessage(Map<String, Object> data, String topicName) {
         LOG.info("Sending Json Serializer : {}", data);
@@ -163,11 +163,11 @@ public class PaymentController {
 
     @GetMapping(path = "/ping")
     public @ResponseBody Map<String, String> pingAck() {
-        String status = dbc.health().getStatus().toString();
-        System.out.println(status);
+//        String status = dbc.health().getStatus().toString();
+//        System.out.println(status);
         Map<String, String> ack = new HashMap<>();
         ack.put("serviceStatus", "UP");
-        ack.put("dbStatus", status);
+        ack.put("dbStatus", "UP");
         return ack;
     }
 }
