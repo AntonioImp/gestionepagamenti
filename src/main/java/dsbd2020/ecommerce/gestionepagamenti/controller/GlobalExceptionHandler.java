@@ -3,11 +3,13 @@ package dsbd2020.ecommerce.gestionepagamenti.controller;
 import dsbd2020.ecommerce.gestionepagamenti.exception.CustomException;
 import dsbd2020.ecommerce.gestionepagamenti.exception.ExceptionResponse;
 import dsbd2020.ecommerce.gestionepagamenti.exception.UnauthorizedException;
+import org.hibernate.exception.JDBCConnectionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.CannotGetJdbcConnectionException;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MissingRequestHeaderException;
@@ -129,8 +131,8 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<ExceptionResponse>(response, HttpStatus.UNSUPPORTED_MEDIA_TYPE);
     }
 
-    @ExceptionHandler(UnsupportedEncodingException.class)
-    public ResponseEntity<ExceptionResponse> InternalServerError(UnsupportedEncodingException e, HttpServletRequest request) {
+    @ExceptionHandler({UnsupportedEncodingException.class, JDBCConnectionException.class})
+    public ResponseEntity<ExceptionResponse> InternalServerError(Exception e, HttpServletRequest request) {
         common(request);
 
         StringWriter sw = new StringWriter();
@@ -143,7 +145,7 @@ public class GlobalExceptionHandler {
 
         ExceptionResponse response = new ExceptionResponse();
         response.setErrorCode("500 INTERNAL SERVER ERROR");
-        response.setErrorMessage(sw.toString());
+        response.setErrorMessage(e.getMessage());
         response.setTimestamp(LocalDateTime.now());
 
         return new ResponseEntity<ExceptionResponse>(response, HttpStatus.INTERNAL_SERVER_ERROR);

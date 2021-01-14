@@ -11,12 +11,17 @@ x-common-variables: &common-variables
   KAFKA_PORT: ${KAFKA_PORT}
   KAFKA_TOPIC1: ${KAFKA_TOPIC1}
   KAFKA_TOPIC2: ${KAFKA_TOPIC2}
+  APP_NAME: ${APP_NAME}
+  APP_PORT: ${APP_PORT}
 
 x-xxx-common-services-config: &common-services-config
   restart: always
 
 x-common-php-variables: &common-php-variables
   PMA_HOST: ${DB_HOST}
+  PMA_PORT: ${DB_PORT}
+  PMA_USER: ${DB_USER}
+  PMA_PASSWORD: ${DB_ROOT_PASSWORD}
   MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
   MYSQL_USER: ${DB_USER}
 
@@ -36,7 +41,7 @@ services:
       ZOO_MY_ID: 1
 
   mysqldb:
-    image: mysql:5
+    image: mysql:5.7
     command: --default-authentication-plugin=mysql_native_password
     environment:
       - MYSQL_DATABASE=${DB_DATABASE}
