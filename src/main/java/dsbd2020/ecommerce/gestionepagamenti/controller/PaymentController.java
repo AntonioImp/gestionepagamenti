@@ -32,22 +32,21 @@ public class PaymentController {
 
     private final Logger LOG = LoggerFactory.getLogger(PaymentController.class);
 
-//    @Autowired
     private KafkaTemplate<String, Map> dataKafkaTemplate;
 
-    @Autowired
     private OrderService orderService;
 
-    @Autowired
     private LoggingService loggingService;
 
-    @Autowired
-    PaymentController(KafkaTemplate<String, Map> dataKafkaTemplate) {
-        this.dataKafkaTemplate = dataKafkaTemplate;
-    }
+    private DatabaseHealthContributor dbc;
 
-//    @Autowired
-//    private DatabaseHealthContributor dbc;
+    @Autowired
+    PaymentController(KafkaTemplate<String, Map> dataKafkaTemplate, OrderService orderService, LoggingService loggingService, DatabaseHealthContributor dbc) {
+        this.dataKafkaTemplate = dataKafkaTemplate;
+        this.orderService = orderService;
+        this.loggingService = loggingService;
+        this.dbc = dbc;
+    }
 
     void sendCustomMessage(Map<String, Object> data, String topicName) {
         LOG.info("Sending Json Serializer : {}", data);
@@ -69,7 +68,7 @@ public class PaymentController {
         HttpEntity<byte[]> r = new HttpEntity<>(postData, headers);
         ResponseEntity<String> responseMessage = restTemplate.exchange(url, HttpMethod.POST, r, String.class);
 
-        System.out.println(responseMessage.getBody());
+//        System.out.println(responseMessage.getBody());
 
         return responseMessage.getBody();
     }
@@ -163,11 +162,11 @@ public class PaymentController {
 
     @GetMapping(path = "/ping")
     public @ResponseBody Map<String, String> pingAck() {
-//        String status = dbc.health().getStatus().toString();
+        String status = dbc.health().getStatus().toString();
 //        System.out.println(status);
         Map<String, String> ack = new HashMap<>();
         ack.put("serviceStatus", "UP");
-        ack.put("dbStatus", "UP");
+        ack.put("dbStatus", status);
         return ack;
     }
 }

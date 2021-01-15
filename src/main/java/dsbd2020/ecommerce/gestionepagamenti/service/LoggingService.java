@@ -10,8 +10,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class LoggingService {
 
-    @Autowired
     LoggingRepository repository;
+
+    @Autowired
+    LoggingService(LoggingRepository repository) {
+        this.repository = repository;
+    }
 
     public Logging addLogging(Logging logging) {
         return repository.save(logging);

@@ -10,8 +10,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class OrderService {
 
-    @Autowired
     OrdersRepository repository;
+
+    @Autowired
+    OrderService(OrdersRepository repository) {
+        this.repository = repository;
+    }
 
     public Orders addOrders(Orders orders) {
         return repository.save(orders);
