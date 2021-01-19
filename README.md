@@ -3,5 +3,3 @@ Per inviare la post ipn eseguire lo script in python e completare la transazione
 nello stesso file sono presenti commenti con degli account sandbox da poter utilizzare per le prove.
 Le impostazioni del microservizio possono essere modificate direttamente tramite il file .env.
 La mail preimpostata di business è "sb-947mcv3804170@business.example.com".
-
-DOCUMENTAZIONE IN FASE DI CARICAMENTO.
