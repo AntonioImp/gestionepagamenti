@@ -169,4 +169,9 @@ public class PaymentController {
         ack.put("dbStatus", status);
         return ack;
     }
+
+    @GetMapping(path = "/health/ping")
+    public @ResponseBody String pingHealthAck() {
+        return "200 ok";
+    }
 }

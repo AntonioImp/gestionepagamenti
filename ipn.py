@@ -5,7 +5,7 @@ def paypal_url():
    params = {  
        'business' : "sb-vyxb84550287@business.example.com",
        'cmd': '_xclick',
-       'invoice': 30,
+       'invoice': 35,
        'amount': 0.01,
        'item_name' : 'my_order_string_reference',
        'item_number' : 'VXB4VEDXJ4V4J',
