@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gestionepagamenti-env-file
+data:
+  DATASOURCE_HOST: gestionepagamenti-db
+  DATASOURCE_NAME: gestionepagamenti
+  DATASOURCE_PORT: "3306"
+  PAYPAL_ACCOUNT: sb-947mcv3804170@business.example.com
+  KAFKA_HOST: kafkabroker
+  KAFKA_PORT: "9092"
+  KAFKA_TOPIC1: orders
+  KAFKA_TOPIC2: logging
+  APP_NAME: gestionepagamenti
+  APP_PORT: "2222"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gestionepagamenti-db-env-file
+  namespace: default
+data:
+  MYSQL_DATABASE: "gestionepagamenti"
+  MYSQL_PORT: "3306"
+  MYSQL_HOST: gestionepagamenti-db

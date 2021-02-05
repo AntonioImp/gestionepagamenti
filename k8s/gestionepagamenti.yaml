@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gestionepagamenti-db
+  labels:
+    app: gestionepagamenti
+spec:
+  selector:
+    matchLabels:
+      app: gestionepagamenti
+      tier: pay-mysql
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: gestionepagamenti
+        tier: pay-mysql
+    spec:
+      containers:
+      - image: mysql:5.7
+        name: pay-mysql
+        ports:
+          - containerPort: 3306
+            name: gp-db-port
+        envFrom:
+          - configMapRef:
+              name: gestionepagamenti-db-env-file
+          - secretRef:
+              name: gestionepagamenti-db-secret-file
+        readinessProbe:
+          exec:
+            command:
+              - mysqladmin
+              - ping
+          initialDelaySeconds: 30
+          timeoutSeconds: 3
+        livenessProbe:
+          exec:
+            command: 
+              - mysqladmin
+              - ping
+          initialDelaySeconds: 30
+          timeoutSeconds: 3
+        volumeMounts:
+          - mountPath: /var/lib/mysql
+            name: gestionepagamenti-db-volume
+      volumes:
+        - name: gestionepagamenti-db-volume
+          persistentVolumeClaim:
+            claimName: gestionepagamenti-db-volume
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gestionepagamenti
+  labels:
+    app: gestionepagamenti
+spec:
+  selector:
+    matchLabels:
+      app: gestionepagamenti
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: gestionepagamenti
+    spec:
+      initContainers:
+        - name: init-gestionepagamenti-db
+          image: mysql:5.7
+          command:
+            - sh
+            - -c
+            - |
+              env | grep MYSQL
+              while ! mysqladmin -h $MYSQL_HOST -P$MYSQL_PORT -u$MYSQL_USER -p$MYSQL_ROOT_PASSWORD ping > /dev/null 2>&1; do
+                echo waiting for db
+                sleep 2
+              done
+          envFrom:
+            - configMapRef:
+                name: gestionepagamenti-env-file
+            - configMapRef:
+                name: gestionepagamenti-db-env-file
+            - secretRef:
+                name: gestionepagamenti-db-secret-file
+      containers:
+        - image: antonioimp/impala_diblasi_gestionepagamenti
+          name: gestionepagamenti
+          ports:
+            - containerPort: 2222
+              name: gp-port
+          envFrom:
+            - configMapRef:
+                name: gestionepagamenti-db-env-file
+            - configMapRef:
+                name: gestionepagamenti-env-file
+            - secretRef:
+                name: gestionepagamenti-db-secret-file
+          readinessProbe:
+            httpGet:
+              path: /health/ping
+              port: 2222
+            initialDelaySeconds: 15
+            periodSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /health/ping
+              port: 2222
+            initialDelaySeconds: 40
+            periodSeconds: 3
