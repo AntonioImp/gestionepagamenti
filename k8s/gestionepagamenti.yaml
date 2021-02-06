@@ -20,6 +20,7 @@ spec:
       containers:
       - image: mysql:5.7
         name: pay-mysql
+        args: ["mysqld", "--default-authentication-plugin=mysql_native_password", "--explicit_defaults_for_timestamp=1"]
         ports:
           - containerPort: 3306
             name: gp-db-port
@@ -43,12 +44,17 @@ spec:
           initialDelaySeconds: 30
           timeoutSeconds: 3
         volumeMounts:
+          - mountPath: /docker-entrypoint-initdb.d
+            name: mysql-initdb
           - mountPath: /var/lib/mysql
             name: gestionepagamenti-db-volume
       volumes:
         - name: gestionepagamenti-db-volume
           persistentVolumeClaim:
             claimName: gestionepagamenti-db-volume
+        - name: mysql-initdb
+          configMap:
+            name: mysql-initdb-config
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -75,7 +81,11 @@ spec:
             - -c
             - |
               env | grep MYSQL
-              while ! mysqladmin -h $MYSQL_HOST -P$MYSQL_PORT -u$MYSQL_USER -p$MYSQL_ROOT_PASSWORD ping > /dev/null 2>&1; do
+              while ! mysqladmin -h $MYSQL_HOST -P$MYSQL_PORT -u$MYSQL_USER -p$MYSQL_PASSWORD ping > /dev/null 2>&1; do
+                echo waiting for db
+                sleep 2
+              done
+              while ! mysql -h $MYSQL_HOST -P$MYSQL_PORT -u$MYSQL_USER -p$MYSQL_PASSWORD -e ";" ; do
                 echo waiting for db
                 sleep 2
               done
@@ -103,7 +113,7 @@ spec:
             httpGet:
               path: /health/ping
               port: 2222
-            initialDelaySeconds: 15
+            initialDelaySeconds: 40
             periodSeconds: 3
           livenessProbe:
             httpGet:
