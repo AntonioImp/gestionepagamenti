@@ -1,5 +1,6 @@
 package dsbd2020.ecommerce.gestionepagamenti.controller;
 
+import com.google.gson.Gson;
 import dsbd2020.ecommerce.gestionepagamenti.entity.Logging;
 import dsbd2020.ecommerce.gestionepagamenti.entity.Orders;
 import dsbd2020.ecommerce.gestionepagamenti.exception.CustomException;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import com.google.common.base.Splitter;
 
+
 import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
@@ -32,7 +34,7 @@ public class PaymentController {
 
     private final Logger LOG = LoggerFactory.getLogger(PaymentController.class);
 
-    private KafkaTemplate<String, Map> dataKafkaTemplate;
+    private KafkaTemplate<String, String> dataKafkaTemplate;
 
     private OrderService orderService;
 
@@ -41,18 +43,18 @@ public class PaymentController {
     private DatabaseHealthContributor dbc;
 
     @Autowired
-    PaymentController(KafkaTemplate<String, Map> dataKafkaTemplate, OrderService orderService, LoggingService loggingService, DatabaseHealthContributor dbc) {
+    PaymentController(KafkaTemplate<String, String> dataKafkaTemplate, OrderService orderService, LoggingService loggingService, DatabaseHealthContributor dbc) {
         this.dataKafkaTemplate = dataKafkaTemplate;
         this.orderService = orderService;
         this.loggingService = loggingService;
         this.dbc = dbc;
     }
 
-    void sendCustomMessage(Map<String, Object> data, String topicName) {
+    void sendCustomMessage(Map<String, Object> data, String key, String topicName) {
         LOG.info("Sending Json Serializer : {}", data);
         LOG.info("--------------------------------");
 
-        dataKafkaTemplate.send(topicName, data);
+        dataKafkaTemplate.send(topicName, key, new Gson().toJson(data));
     }
 
     private String IPN_verify(String ipn) {
@@ -76,8 +78,8 @@ public class PaymentController {
     @PostMapping(path = "/ipn")
     public @ResponseBody
     ResponseEntity ipn(@RequestBody String request) throws UnsupportedEncodingException{
-        Map<String, Object> kafka_msg = new HashMap<>();
         Map<String, Object> value_msg = new HashMap<>();
+        String key = "";
 
         String notify = IPN_verify(request);
 
@@ -91,12 +93,10 @@ public class PaymentController {
             if (!notify.equals("INVALID")) {
                 if (newMap.get("business").equals(MY_PAYPAL_ACCOUNT)) {
                     LOG.info("---------------------------------");
-                    kafka_msg.put("key", "order_paid");
                     value_msg.put("orderId", Integer.valueOf(newMap.get("invoice")));
                     value_msg.put("userId", newMap.get("payer_id"));
                     value_msg.put("amountPaid", Double.valueOf(newMap.get("mc_gross")));
-                    kafka_msg.put("value", value_msg);
-                    sendCustomMessage(kafka_msg, "orders");
+                    sendCustomMessage(value_msg, "order_paid","orders");
 
                     Orders order = new Orders();
                     order.setKafkaOrderId(Integer.valueOf(newMap.get("invoice")));
@@ -111,23 +111,21 @@ public class PaymentController {
 
                 } else {
                     LOG.info("---------------------------------");
-                    kafka_msg.put("key", "received_wrong_business_paypal_payment");
                     value_msg.put("timestamp", Instant.now().getEpochSecond());
                     value_msg.putAll(newMap);
-                    kafka_msg.put("value", value_msg);
-                    sendCustomMessage(kafka_msg, "logging");
+                    key = "received_wrong_business_paypal_payment";
+                    sendCustomMessage(value_msg, "received_wrong_business_paypal_payment","logging");
                 }
             } else {
                 LOG.info("---------------------------------");
-                kafka_msg.put("key", "bad_ipn_error");
                 value_msg.put("timestamp", Instant.now().getEpochSecond());
                 value_msg.putAll(newMap);
-                kafka_msg.put("value", value_msg);
-                sendCustomMessage(kafka_msg, "logging");
+                key = "bad_ipn_error";
+                sendCustomMessage(value_msg, "bad_ipn_error","logging");
             }
 
             Logging logging = new Logging();
-            logging.setKafkaKey(String.valueOf(kafka_msg.get("key")));
+            logging.setKafkaKey(key);
             logging.setUnixTimestamp((Long) value_msg.get("timestamp"));
             logging.setIpnAttribute(newMap);
 
@@ -160,13 +158,26 @@ public class PaymentController {
         throw new UnauthorizedException("User doesn't an administrator.");
     }
 
+    @GetMapping(path = "/fakeorders")
+    public @ResponseBody ResponseEntity fakeOrders() {
+        Map<String, Object> value_msg = new HashMap<>();
+        LOG.info("---------------------------------");
+        value_msg.put("orderId", "507f1f77bcf86cd799439011");
+        value_msg.put("userId", "id utente");
+        value_msg.put("amountPaid", 5.6);
+        sendCustomMessage(value_msg, "order_paid", "orders");
+        LOG.info("Orders sent in kafka: {}", value_msg);
+        LOG.info("--------------------------------");
+        return ResponseEntity.ok("200 ok");
+    }
+
     @GetMapping(path = "/ping")
     public @ResponseBody Map<String, String> pingAck() {
         String status = dbc.health().getStatus().toString();
 //        System.out.println(status);
         Map<String, String> ack = new HashMap<>();
-        ack.put("serviceStatus", "UP");
-        ack.put("dbStatus", status);
+        ack.put("serviceStatus", "up");
+        ack.put("dbStatus", status.toLowerCase());
         return ack;
     }
 
