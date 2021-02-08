@@ -1,6 +1,8 @@
 package dsbd2020.ecommerce.gestionepagamenti.controller;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 import dsbd2020.ecommerce.gestionepagamenti.entity.Logging;
 import dsbd2020.ecommerce.gestionepagamenti.entity.Orders;
 import dsbd2020.ecommerce.gestionepagamenti.exception.CustomException;
@@ -34,7 +36,7 @@ public class PaymentController {
 
     private final Logger LOG = LoggerFactory.getLogger(PaymentController.class);
 
-    private KafkaTemplate<String, String> dataKafkaTemplate;
+    private KafkaTemplate<String, Map> dataKafkaTemplate;
 
     private OrderService orderService;
 
@@ -43,7 +45,7 @@ public class PaymentController {
     private DatabaseHealthContributor dbc;
 
     @Autowired
-    PaymentController(KafkaTemplate<String, String> dataKafkaTemplate, OrderService orderService, LoggingService loggingService, DatabaseHealthContributor dbc) {
+    PaymentController(KafkaTemplate<String, Map> dataKafkaTemplate, OrderService orderService, LoggingService loggingService, DatabaseHealthContributor dbc) {
         this.dataKafkaTemplate = dataKafkaTemplate;
         this.orderService = orderService;
         this.loggingService = loggingService;
@@ -53,8 +55,7 @@ public class PaymentController {
     void sendCustomMessage(Map<String, Object> data, String key, String topicName) {
         LOG.info("Sending Json Serializer : {}", data);
         LOG.info("--------------------------------");
-
-        dataKafkaTemplate.send(topicName, key, new Gson().toJson(data));
+        dataKafkaTemplate.send(topicName, key, data);
     }
 
     private String IPN_verify(String ipn) {
@@ -96,6 +97,7 @@ public class PaymentController {
                     value_msg.put("orderId", Integer.valueOf(newMap.get("invoice")));
                     value_msg.put("userId", newMap.get("payer_id"));
                     value_msg.put("amountPaid", Double.valueOf(newMap.get("mc_gross")));
+                    value_msg.put("extraArgs", new HashMap<String, String>());
                     sendCustomMessage(value_msg, "order_paid","orders");
 
                     Orders order = new Orders();
@@ -160,13 +162,14 @@ public class PaymentController {
 
     @GetMapping(path = "/fakeorders")
     public @ResponseBody ResponseEntity fakeOrders() {
-        Map<String, Object> value_msg = new HashMap<>();
         LOG.info("---------------------------------");
+        Map<String, Object> value_msg = new HashMap<>();
+        value_msg.put("extraArgs", new HashMap<String, String>());
         value_msg.put("orderId", "507f1f77bcf86cd799439011");
         value_msg.put("userId", "id utente");
         value_msg.put("amountPaid", 5.6);
-        sendCustomMessage(value_msg, "order_paid", "orders");
-        LOG.info("Orders sent in kafka: {}", value_msg);
+        sendCustomMessage(value_msg, "order_paid","orders");
+        LOG.info("Sent: {}", value_msg);
         LOG.info("--------------------------------");
         return ResponseEntity.ok("200 ok");
     }

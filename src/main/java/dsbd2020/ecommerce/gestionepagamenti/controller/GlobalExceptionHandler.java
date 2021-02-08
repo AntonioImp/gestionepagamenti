@@ -1,6 +1,5 @@
 package dsbd2020.ecommerce.gestionepagamenti.controller;
 
-import com.google.gson.Gson;
 import dsbd2020.ecommerce.gestionepagamenti.exception.CustomException;
 import dsbd2020.ecommerce.gestionepagamenti.exception.ExceptionResponse;
 import dsbd2020.ecommerce.gestionepagamenti.exception.UnauthorizedException;
@@ -33,13 +32,13 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     private final Logger LOG = LoggerFactory.getLogger(GlobalExceptionHandler.class);
-    private KafkaTemplate<String, String> dataKafkaTemplate;
+    private KafkaTemplate<String, Map> dataKafkaTemplate;
 
     private Map<String, Object> value_msg = new HashMap<>();
     private String ipAddress;
 
     @Autowired
-    GlobalExceptionHandler(KafkaTemplate<String, String> dataKafkaTemplate) {
+    GlobalExceptionHandler(KafkaTemplate<String, Map> dataKafkaTemplate) {
         this.dataKafkaTemplate = dataKafkaTemplate;
     }
 
@@ -56,7 +55,7 @@ public class GlobalExceptionHandler {
         LOG.info("Sending Json Serializer : {}", data);
         LOG.info("--------------------------------");
 
-        dataKafkaTemplate.send(topicName, "http_errors", new Gson().toJson(data));
+        dataKafkaTemplate.send(topicName, "http_errors", data);
     }
 
     @ExceptionHandler({HttpClientErrorException.class, HttpServerErrorException.class})
