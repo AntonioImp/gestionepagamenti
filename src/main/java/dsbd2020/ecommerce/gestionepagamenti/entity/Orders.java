@@ -12,13 +12,13 @@ public class Orders {
     private Long unixTimestamp;
 
     //Kafka params
-    private Integer KafkaOrderId;
+    private String KafkaOrderId;
     private String KafkaUserId;
     private Double KafkaAmountPaid;
 
     //Ipn params
     private String IpnBusiness;
-    private Integer IpnInvoice;
+    private String IpnInvoice;
     private Integer IpnQuantity;
     private String IpnItem_number;
     private String IpnItem_name;
@@ -28,9 +28,9 @@ public class Orders {
 
     public void setIpnAttribute(Map<String, String> ipn) {
         this.IpnBusiness = ipn.get("business");
-        this.IpnInvoice = Integer.valueOf(ipn.get("invoice"));
+        this.IpnInvoice = ipn.get("invoice");
         this.IpnQuantity = Integer.valueOf(ipn.get("quantity"));
-        this.IpnItem_number = ipn.get("item_number");
+        this.IpnItem_number = ipn.get("item_number"); //Usato come user id
         this.IpnItem_name = ipn.get("item_name");
         this.IpnMc_currency = ipn.get("mc_currency");
         this.IpnMc_gross = Double.valueOf(ipn.get("mc_gross"));
@@ -53,11 +53,11 @@ public class Orders {
         this.unixTimestamp = unixTimestamp;
     }
 
-    public Integer getKafkaOrderId() {
+    public String getKafkaOrderId() {
         return KafkaOrderId;
     }
 
-    public void setKafkaOrderId(Integer kafkaOrderId) {
+    public void setKafkaOrderId(String kafkaOrderId) {
         KafkaOrderId = kafkaOrderId;
     }
 
@@ -85,11 +85,11 @@ public class Orders {
         IpnBusiness = ipnBusiness;
     }
 
-    public Integer getIpnInvoice() {
+    public String getIpnInvoice() {
         return IpnInvoice;
     }
 
-    public void setIpnInvoice(Integer ipnInvoice) {
+    public void setIpnInvoice(String ipnInvoice) {
         IpnInvoice = ipnInvoice;
     }
 

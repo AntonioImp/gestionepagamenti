@@ -5,13 +5,13 @@ def paypal_url():
    params = {  
        'business' : "sb-vyxb84550287@business.example.com",
        'cmd': '_xclick',
-       'invoice': 35,
+       'invoice': '507f1f77bcf86cd799439011',
        'amount': 0.01,
        'item_name' : 'my_order_string_reference',
-       'item_number' : 'VXB4VEDXJ4V4J',
+       'item_number' : 'USER_ID',
        'quantity' : 1,
        'currency_code' : 'EUR',
-       'notify_url' : "https://0674dba4f2a3.ngrok.io" + "/ipn"
+       'notify_url' : "https://bc6efa8ce4b1.ngrok.io" + "/ipn"
    }
    return "https://www.sandbox.paypal.com/cgi-bin/webscr" + '?' + urlencode(params)
   
@@ -20,7 +20,7 @@ print(paypal_url())
 webbrowser.open(paypal_url())
 
 #https://webhook.site/1456746b-a911-4e29-8a4f-fabc1cf56886
-#https://0674dba4f2a3.ngrok.io
+#https://bc6efa8ce4b1.ngrok.io
 
 # Business IT - sb-vyxb84550287@business.example.com - Rmqe-03^
 # Personal IT - sb-e6sf64353498@personal.example.com - n-8l$5U1

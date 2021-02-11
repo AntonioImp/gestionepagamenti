@@ -22,9 +22,9 @@ public class Logging {
 
     //Ipn params
     private String IpnBusiness;
-    private Integer IpnInvoice;
+    private String IpnInvoice;
     private Integer IpnQuantity;
-    private String IpnItem_number;
+    private String IpnItem_number;  //Usato come user id
     private String IpnItem_name;
     private Double IpnMc_gross;
     private String IpnMc_currency;
@@ -32,7 +32,7 @@ public class Logging {
 
     public void setIpnAttribute(Map<String, String> ipn) {
         this.IpnBusiness = ipn.get("business");
-        this.IpnInvoice = Integer.valueOf(ipn.get("invoice"));
+        this.IpnInvoice = ipn.get("invoice");
         this.IpnQuantity = Integer.valueOf(ipn.get("quantity"));
         this.IpnItem_number = ipn.get("item_number");
         this.IpnItem_name = ipn.get("item_name");
@@ -73,11 +73,11 @@ public class Logging {
         IpnBusiness = ipnBusiness;
     }
 
-    public Integer getIpnInvoice() {
+    public String getIpnInvoice() {
         return IpnInvoice;
     }
 
-    public void setIpnInvoice(Integer ipnInvoice) {
+    public void setIpnInvoice(String ipnInvoice) {
         IpnInvoice = ipnInvoice;
     }
 

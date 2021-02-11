@@ -1,8 +1,5 @@
 package dsbd2020.ecommerce.gestionepagamenti.controller;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
 import dsbd2020.ecommerce.gestionepagamenti.entity.Logging;
 import dsbd2020.ecommerce.gestionepagamenti.entity.Orders;
 import dsbd2020.ecommerce.gestionepagamenti.exception.CustomException;
@@ -94,15 +91,15 @@ public class PaymentController {
             if (!notify.equals("INVALID")) {
                 if (newMap.get("business").equals(MY_PAYPAL_ACCOUNT)) {
                     LOG.info("---------------------------------");
-                    value_msg.put("orderId", Integer.valueOf(newMap.get("invoice")));
-                    value_msg.put("userId", newMap.get("payer_id"));
+                    value_msg.put("orderId", newMap.get("invoice"));
+                    value_msg.put("userId", newMap.get("item_number"));
                     value_msg.put("amountPaid", Double.valueOf(newMap.get("mc_gross")));
                     value_msg.put("extraArgs", new HashMap<String, String>());
                     sendCustomMessage(value_msg, "order_paid","orders");
 
                     Orders order = new Orders();
-                    order.setKafkaOrderId(Integer.valueOf(newMap.get("invoice")));
-                    order.setKafkaUserId(newMap.get("payer_id"));
+                    order.setKafkaOrderId(newMap.get("invoice"));
+                    order.setKafkaUserId(newMap.get("item_number"));
                     order.setKafkaAmountPaid(Double.valueOf(newMap.get("mc_gross")));
                     order.setUnixTimestamp(Instant.now().getEpochSecond());
                     order.setIpnAttribute(newMap);
@@ -160,15 +157,20 @@ public class PaymentController {
         throw new UnauthorizedException("User doesn't an administrator.");
     }
 
-    @GetMapping(path = "/fakeorders")
-    public @ResponseBody ResponseEntity fakeOrders() {
-        LOG.info("---------------------------------");
+    @PostMapping(path = "/fakeorders")
+    public @ResponseBody ResponseEntity fakeOrders(@RequestBody String request) throws UnsupportedEncodingException {
+        Map<String, String> mapData = new HashMap<>();
+        for(Map.Entry<String, String> entry : Splitter.on('&').trimResults().withKeyValueSeparator('=').split(request).entrySet()) {
+            mapData.put(entry.getKey(), URLDecoder.decode(entry.getValue(), StandardCharsets.UTF_8.toString()));
+        }
         Map<String, Object> value_msg = new HashMap<>();
+        value_msg.put("orderId", String.valueOf(mapData.get("invoice")));
+        value_msg.put("userId", mapData.get("item_number"));
+        value_msg.put("amountPaid", Double.valueOf(mapData.get("mc_gross")));
         value_msg.put("extraArgs", new HashMap<String, String>());
-        value_msg.put("orderId", "507f1f77bcf86cd799439011");
-        value_msg.put("userId", "id utente");
-        value_msg.put("amountPaid", 5.6);
         sendCustomMessage(value_msg, "order_paid","orders");
+
+        LOG.info("---------------------------------");
         LOG.info("Sent: {}", value_msg);
         LOG.info("--------------------------------");
         return ResponseEntity.ok("200 ok");
