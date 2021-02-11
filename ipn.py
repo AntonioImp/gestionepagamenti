@@ -3,15 +3,15 @@ import webbrowser
 
 def paypal_url():
    params = {  
-       'business' : "sb-vyxb84550287@business.example.com",
+       'business' : "sb-947mcv3804170@business.example.com",
        'cmd': '_xclick',
-       'invoice': '507f1f77bcf86cd799439011',
+       'invoice': '407f1f77bcf86cd799439011',
        'amount': 0.01,
        'item_name' : 'my_order_string_reference',
        'item_number' : 'USER_ID',
        'quantity' : 1,
        'currency_code' : 'EUR',
-       'notify_url' : "https://bc6efa8ce4b1.ngrok.io" + "/ipn"
+       'notify_url' : "https://dd3978ab9f71.ngrok.io" + "/ipn"
    }
    return "https://www.sandbox.paypal.com/cgi-bin/webscr" + '?' + urlencode(params)
   
