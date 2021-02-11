@@ -48,6 +48,7 @@ metadata:
   labels:
     app: gestionepagamenti
 spec:
+  type: NodePort
   ports:
     - port: 2222
       name: gp-port
