@@ -1,5 +1,11 @@
-from urllib import urlencode
+#Python 2.7
+#from urllib import urlencode
+#Python 3
+from urllib.parse import urlencode
 import webbrowser
+
+#Esecuzione: python3 ipn.py
+#Esecuzione: python ipn.py
 
 def paypal_url():
    params = {  
